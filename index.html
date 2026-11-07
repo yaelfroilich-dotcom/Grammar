@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>גביע האלופים בעברית ⚽ כובשים שערים בלי שגיאות!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Rubik', sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(180deg, #0f172a 0%, #1e3a8a 40%, #15803d 40%, #166534 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* דשא אצטדיון בפסים */
+        .pitch-bg {
+            background: repeating-linear-gradient(
+                90deg,
+                #16a34a 0px,
+                #16a34a 45px,
+                #15803d 45px,
+                #15803d 90px
+            );
+            position: relative;
+        }
+
+        /* רשת השער */
+        .goal-net {
+            background-image: 
+                linear-gradient(to right, rgba(255,255,255,0.35) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255,255,255,0.35) 1px, transparent 1px);
+            background-size: 16px 16px;
+            box-shadow: inset 0 10px 25px rgba(0,0,0,0.45);
+        }
+
+        /* אנימציית כדורגל */
+        #soccer-ball {
+            transition: all 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+            filter: drop-shadow(0 10px 8px rgba(0,0,0,0.5));
+        }
+
+        .ball-spin {
+            animation: spinBall 0.55s linear infinite;
+        }
+
+        @keyframes spinBall {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(0.75); }
+            100% { transform: rotate(360deg) scale(0.55); }
+        }
+
+        /* אנימציית שוער */
+        #goalkeeper {
+            transition: all 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .goalie-idle {
+            animation: goalieBounce 1.4s ease-in-out infinite;
+        }
+
+        @keyframes goalieBounce {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        /* כפתורים תלת מימדיים למשחק */
+        .btn-3d {
+            transition: all 0.15s ease;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.35), 0 10px 15px rgba(0,0,0,0.25);
+        }
+        .btn-3d:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.35), 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .btn-target {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+        }
+        .btn-target:hover {
+            transform: scale(1.06);
+        }
+        .btn-target:active {
+            transform: scale(0.95);
+        }
+
+        /* אורות זרקורים באצטדיון */
+        .stadium-lights {
+            background: radial-gradient(circle at 50% 0%, rgba(254, 240, 138, 0.35) 0%, transparent 70%);
+        }
+
+        /* באנר גול */
+        @keyframes goalPop {
+            0% { transform: scale(0.2) rotate(-10deg); opacity: 0; }
+            60% { transform: scale(1.15) rotate(3deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        .goal-banner-anim {
+            animation: goalPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        /* הבהוב כרטיס חרוז */
+        .rhyme-box {
+            background: linear-gradient(135deg, #fef9c3 0%, #fde047 100%);
+            border: 4px dashed #ca8a04;
+        }
+    </style>
+</head>
+<body class="text-slate-900 flex flex-col justify-between min-h-screen relative">
+
+    <!-- קנבס קונפטי לחגיגות גולים וגביע -->
+    <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+    <!-- סרגל עליון - לוח תוצאות וכפתורי שמע -->
+    <header class="w-full bg-slate-900/95 border-b-4 border-yellow-400 px-3 py-2.5 shadow-xl z-30">
+        <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            <!-- לוגו ושם המשחק -->
+            <div class="flex items-center gap-2 cursor-pointer" onclick="showMainMenu()">
+                <span class="text-3xl md:text-4xl animate-bounce">⚽</span>
+                <div>
+                    <h1 class="text-lg md:text-2xl font-black text-yellow-400 tracking-wide leading-none">גביע האלופים בעברית</h1>
+                    <p class="text-xs text-emerald-300 font-semibold">כובשים שערים בלי שגיאות כתיב!</p>
+                </div>
+            </div>
+
+            <!-- לוח תוצאות חי -->
+            <div class="flex items-center gap-2 md:gap-4 bg-slate-800 px-3 py-1.5 rounded-2xl border-2 border-slate-600">
+                <div class="text-center px-2">
+                    <span class="text-[11px] text-slate-300 block">שערים</span>
+                    <span id="score-display" class="text-xl md:text-2xl font-black text-emerald-400">0</span>
+                </div>
+                <div class="h-7 w-0.5 bg-slate-600"></div>
+                <div class="text-center px-2">
+                    <span class="text-[11px] text-slate-300 block">רצף הבקעות 🔥</span>
+                    <span id="streak-display" class="text-xl md:text-2xl font-black text-orange-400">0</span>
+                </div>
+                <div class="h-7 w-0.5 bg-slate-600"></div>
+                <div class="text-center px-2">
+                    <span class="text-[11px] text-slate-300 block">מדליות 🏅</span>
+                    <span id="medals-display" class="text-xl md:text-2xl font-black text-yellow-300">0/4</span>
+                </div>
+            </div>
+
+            <!-- כפתורי שליטה במוזיקה, קול ותפריט -->
+            <div class="flex items-center gap-2">
+                <button id="music-btn" onclick="toggleMusic()" class="btn-3d bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs md:text-sm font-bold flex items-center gap-1" title="מוזיקת רקע">
+                    <span id="music-icon">🎵</span>
+                    <span class="hidden sm:inline">מוזיקה</span>
+                </button>
+                <button id="sfx-btn" onclick="toggleSfx()" class="btn-3d bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-xs md:text-sm font-bold flex items-center gap-1" title="אפקטים והקראה">
+                    <span id="sfx-icon">🔊</span>
+                    <span class="hidden sm:inline">קול פעיל</span>
+                </button>
+                <button onclick="showMainMenu()" class="btn-3d bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-2 rounded-xl text-xs md:text-sm font-black">
+                    🏠 ראשי
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- אזור מרכזי של המשחק -->
+    <main class="flex-1 flex flex-col items-center justify-center p-3 md:p-6 stadium-lights relative z-20">
+
+        <!-- ==================== מסך 1: תפריט ראשי ובחירת שלב ==================== -->
+        <section id="screen-menu" class="w-full max-w-4xl bg-white/95 backdrop-blur-md rounded-3xl p-5 md:p-8 shadow-2xl border-4 border-yellow-400 text-center">
+            <div class="inline-block bg-emerald-100 text-emerald-800 px-4 py-1 rounded-full font-bold text-sm mb-2 border border-emerald-300">
+                🏆 ליגת העל לשפה העברית – לתלמידי יסודי
+            </div>
+            <h2 class="text-3xl md:text-5xl font-black text-slate-900 mb-3">מוכנים לעלות למגרש?</h2>
+            <p class="text-base md:text-lg text-slate-600 max-w-2xl mx-auto mb-6">
+                בחרו את אחד מארבעת האימונים או צאו ל<strong>טורניר האליפות המלא</strong>! בכל שלב נלמד חרוז קסם קצר, נשמע דוגמאות ונבעט פנדלים לשער!
+            </p>
+
+            <!-- כרטיסיות 4 הכללים מסעיף 1 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-right">
+                
+                <!-- שלב 1: אותיות אית"ן -->
+                <div onclick="startStage(0)" class="cursor-pointer group bg-gradient-to-br from-blue-50 to-indigo-100 hover:from-blue-100 hover:to-indigo-200 p-4 rounded-2xl border-3 border-indigo-300 shadow-md transition transform hover:-translate-y-1 flex items-center justify-between">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-3xl font-black shadow-lg group-hover:scale-110 transition">
+                            א'
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded-full">שלב 1</span>
+                                <span id="badge-stage-0" class="hidden text-xs bg-yellow-400 text-slate-900 font-black px-2 py-0.5 rounded-full">🏅 הושלם!</span>
+                            </div>
+                            <h3 class="text-lg md:text-xl font-black text-indigo-950 mt-0.5">אני בעתיד – תמיד ב-א'!</h3>
+                            <p class="text-xs md:text-sm text-slate-600">אני אלך, אני אבקיע (ולא ילך/יבקיע)</p>
+                        </div>
+                    </div>
+                    <span class="text-2xl text-indigo-500 group-hover:translate-x-[-4px] transition">⬅️</span>
+                </div>
+
+                <!-- שלב 2: אם או עם -->
+                <div onclick="startStage(1)" class="cursor-pointer group bg-gradient-to-br from-emerald-50 to-teal-100 hover:from-emerald-100 hover:to-teal-200 p-4 rounded-2xl border-3 border-emerald-300 shadow-md transition transform hover:-translate-y-1 flex items-center justify-between">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-2xl font-black shadow-lg group-hover:scale-110 transition">
+                            אם/עם
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full">שלב 2</span>
+                                <span id="badge-stage-1" class="hidden text-xs bg-yellow-400 text-slate-900 font-black px-2 py-0.5 rounded-full">🏅 הושלם!</span>
+                            </div>
+                            <h3 class="text-lg md:text-xl font-black text-emerald-950 mt-0.5">הבחנה בין "אם" ל-"עם"</h3>
+                            <p class="text-xs md:text-sm text-slate-600">עם חברים במגרש, או אם ננצח במשחק?</p>
+                        </div>
+                    </div>
+                    <span class="text-2xl text-emerald-600 group-hover:translate-x-[-4px] transition">⬅️</span>
+                </div>
+
+                <!-- שלב 3: סיומת ם או ן -->
+                <div onclick="startStage(2)" class="cursor-pointer group bg-gradient-to-br from-amber-50 to-orange-100 hover:from-amber-100 hover:to-orange-200 p-4 rounded-2xl border-3 border-amber-300 shadow-md transition transform hover:-translate-y-1 flex items-center justify-between">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-14 h-14 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-2xl font-black shadow-lg group-hover:scale-110 transition">
+                            ם/ן
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">שלב 3</span>
+                                <span id="badge-stage-2" class="hidden text-xs bg-yellow-400 text-slate-900 font-black px-2 py-0.5 rounded-full">🏅 הושלם!</span>
+                            </div>
+                            <h3 class="text-lg md:text-xl font-black text-amber-950 mt-0.5">סיומת ם' או ן' במילים</h3>
+                            <p class="text-xs md:text-sm text-slate-600">טריק הרבים: שולחן -> שולחנות, חלום -> חלומות</p>
+                        </div>
+                    </div>
+                    <span class="text-2xl text-amber-600 group-hover:translate-x-[-4px] transition">⬅️</span>
+                </div>
+
+                <!-- שלב 4: פועל בעבר ה' או תה -->
+                <div onclick="startStage(3)" class="cursor-pointer group bg-gradient-to-br from-purple-50 to-pink-100 hover:from-purple-100 hover:to-pink-200 p-4 rounded-2xl border-3 border-purple-300 shadow-md transition transform hover:-translate-y-1 flex items-center justify-between">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-14 h-14 rounded-2xl bg-purple-600 text-white flex items-center justify-center text-2xl font-black shadow-lg group-hover:scale-110 transition">
+                            ה/תה
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold bg-purple-200 text-purple-900 px-2 py-0.5 rounded-full">שלב 4</span>
+                                <span id="badge-stage-3" class="hidden text-xs bg-yellow-400 text-slate-900 font-black px-2 py-0.5 rounded-full">🏅 הושלם!</span>
+                            </div>
+                            <h3 class="text-lg md:text-xl font-black text-purple-950 mt-0.5">פעלים בעבר: הוא והיא</h3>
+                            <p class="text-xs md:text-sm text-slate-600">הוא רצה / היא רצתה, הוא קנה / היא קנתה</p>
+                        </div>
+                    </div>
+                    <span class="text-2xl text-purple-600 group-hover:translate-x-[-4px] transition">⬅️</span>
+                </div>
+            </div>
+
+            <!-- כפתור גמר גביע האלופים (מעורב) -->
+            <button onclick="startStage(4)" class="btn-3d w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 hover:from-yellow-300 hover:to-orange-400 text-slate-950 font-black text-xl md:text-2xl rounded-2xl flex items-center justify-center gap-3 mx-auto">
+                <span>🏆</span>
+                <span>גמר גביע האלופים! (כל החוקים יחד)</span>
+                <span>⚽</span>
+            </button>
+        </section>
+
+        <!-- ==================== מסך 2: תדריך המאמן (חרוז + דוגמאות + הקראה) ==================== -->
+        <section id="screen-briefing" class="hidden w-full max-w-3xl bg-white rounded-3xl p-5 md:p-8 shadow-2xl border-4 border-emerald-500 relative">
+            <!-- כותרת תדריך ומאמן -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 border-b-2 border-slate-100 pb-4 mb-5">
+                <div class="flex items-center gap-3">
+                    <div class="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center text-4xl border-2 border-emerald-400 shadow">
+                        🧢
+                    </div>
+                    <div>
+                        <span id="briefing-stage-tag" class="text-xs font-black uppercase bg-emerald-600 text-white px-3 py-0.5 rounded-full">תדריך המאמן – שלב 1</span>
+                        <h2 id="briefing-title" class="text-2xl md:text-3xl font-black text-slate-900 mt-1">אותיות אית"ן בעתיד</h2>
+                    </div>
+                </div>
+                <button onclick="readCurrentBriefing()" class="btn-3d bg-sky-500 hover:bg-sky-400 text-white px-4 py-2.5 rounded-2xl font-bold text-sm md:text-base flex items-center gap-2 shrink-0">
+                    <span>🔊</span>
+                    <span>הקרא לי את הכלל!</span>
+                </button>
+            </div>
+
+            <!-- חרוז הקסם של המאמן -->
+            <div class="rhyme-box rounded-2xl p-4 md:p-5 mb-5 text-center shadow-inner relative">
+                <span class="text-xs font-black bg-amber-600 text-white px-3 py-0.5 rounded-full inline-block mb-2">✨ חרוז הקסם לזכירה מהירה ✨</span>
+                <p id="briefing-rhyme" class="text-xl md:text-2xl font-black text-amber-950 leading-relaxed"></p>
+            </div>
+
+            <!-- הסבר קצר וקולע -->
+            <p id="briefing-explanation" class="text-base md:text-lg text-slate-700 font-semibold mb-5 text-center leading-relaxed"></p>
+
+            <!-- דוגמאות מאוירות (נכון מול שגוי) -->
+            <div class="mb-6">
+                <h3 class="text-sm font-black text-slate-500 uppercase tracking-wider mb-3 text-center">📋 דוגמאות על לוח הטקטיקה:</h3>
+                <div id="briefing-examples" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <!-- מוזרק דינמית -->
+                </div>
+            </div>
+
+            <!-- כפתור עלייה למגרש -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button onclick="launchPenaltyShootout()" class="btn-3d w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-black text-xl md:text-2xl rounded-2xl flex items-center justify-center gap-3">
+                    <span>עולים למגרש לבעוט!</span>
+                    <span class="text-3xl">⚽🥅</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ==================== מסך 3: מגרש הפנדלים והתרגול ==================== -->
+        <section id="screen-game" class="hidden w-full max-w-4xl flex flex-col items-center">
+            
+            <!-- סרגל התקדמות בשלב + כפתור תזכורת לחרוז -->
+            <div class="w-full flex flex-wrap items-center justify-between gap-2 bg-slate-900/90 text-white px-4 py-2.5 rounded-t-3xl border-x-4 border-t-4 border-white/20">
+                <div class="flex items-center gap-2">
+                    <span id="game-stage-title" class="font-black text-yellow-400 text-sm md:text-base">שלב 1</span>
+                    <span class="text-slate-400">|</span>
+                    <span id="question-counter" class="text-xs md:text-sm font-bold text-emerald-300">בעיטה 1 מתוך 5</span>
+                </div>
+
+                <!-- כדורי פנדלים (נקודות התקדמות) -->
+                <div id="penalty-dots" class="flex items-center gap-1.5">
+                    <!-- מוזרק דינמית -->
+                </div>
+
+                <button onclick="toggleRuleReminder()" class="bg-amber-400 hover:bg-amber-300 text-slate-950 px-3 py-1 rounded-xl text-xs font-black flex items-center gap-1 transition">
+                    <span>💡</span>
+                    <span>חרוז הקסם</span>
+                </button>
+            </div>
+
+            <!-- חלונית תזכורת חרוז קופצת -->
+            <div id="rule-reminder-popup" class="hidden w-full bg-amber-100 border-x-4 border-b-2 border-amber-500 px-4 py-2.5 text-center">
+                <p id="reminder-rhyme-text" class="text-sm md:text-base font-black text-amber-950"></p>
+            </div>
+
+            <!-- זירת האצטדיון והשער -->
+            <div class="w-full pitch-bg rounded-b-3xl border-4 border-white/40 shadow-2xl p-3 md:p-6 flex flex-col items-center relative overflow-hidden">
+                
+                <!-- קו רחבת העונשין -->
+                <div class="absolute inset-x-10 top-0 h-44 border-b-4 border-x-4 border-white/35 rounded-b-3xl pointer-events-none"></div>
+
+                <!-- השער (Goalpost) -->
+                <div class="w-full max-w-2xl bg-slate-900/55 goal-net border-t-8 border-x-8 border-white rounded-t-2xl p-3 md:p-5 relative min-h-[190px] md:min-h-[220px] flex flex-col justify-between items-center shadow-2xl">
+                    
+                    <!-- כפתורי המטרות בפינות השער (תשובות לבחירה) -->
+                    <div id="targets-container" class="w-full grid grid-cols-2 sm:grid-cols-3 gap-2.5 md:gap-4 z-20 my-auto">
+                        <!-- כפתורי התשובות מוזרקים כאן -->
+                    </div>
+
+                    <!-- השוער -->
+                    <div id="goalkeeper" class="goalie-idle text-5xl md:text-6xl select-none pointer-events-none z-10 mt-2 filter drop-shadow-lg">
+                        🧤🧍‍♂️🧤
+                    </div>
+                </div>
+
+                <!-- כרטיס השאלה / המשפט להשלמה -->
+                <div class="w-full max-w-2xl bg-white/95 backdrop-blur rounded-2xl p-4 md:p-5 mt-4 shadow-xl border-3 border-yellow-400 text-center relative z-20">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">🎯 בחרו את המילה הנכונה כדי להבקיע!</span>
+                        <button onclick="speakCurrentQuestion()" class="text-xs md:text-sm bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold px-3 py-1 rounded-full flex items-center gap-1 transition">
+                            <span>🔊</span>
+                            <span>הקרא משפט</span>
+                        </button>
+                    </div>
+                    <p id="question-sentence" class="text-xl md:text-3xl font-black text-slate-900 my-2 leading-relaxed"></p>
+                    <p id="question-hint-sub" class="text-xs md:text-sm text-slate-500 font-semibold"></p>
+                </div>
+
+                <!-- נקודת הפנדל והכדור -->
+                <div class="mt-5 mb-2 flex flex-col items-center justify-center relative h-20 w-full">
+                    <!-- נקודה לבנה על הדשא -->
+                    <div class="w-6 h-2.5 bg-white/80 rounded-full mt-12"></div>
+                    <!-- כדורגל -->
+                    <div id="soccer-ball" class="text-5xl md:text-6xl absolute bottom-1 cursor-pointer select-none">
+                        ⚽
+                    </div>
+                </div>
+
+                <!-- באנר משוב על בעיטה (גול או החמצה + הסבר) -->
+                <div id="feedback-overlay" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-30 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-3xl p-5 md:p-7 max-w-lg w-full text-center border-4 border-yellow-400 shadow-2xl goal-banner-anim">
+                        <div id="feedback-emoji" class="text-6xl mb-2">⚽🎉</div>
+                        <h3 id="feedback-title" class="text-3xl md:text-4xl font-black text-emerald-600 mb-2">גוווול! אלופים!</h3>
+                        <p id="feedback-explanation" class="text-base md:text-lg text-slate-700 font-bold mb-4 leading-relaxed bg-slate-100 p-3.5 rounded-2xl border border-slate-200"></p>
+                        <button id="feedback-next-btn" onclick="nextPenaltyStep()" class="btn-3d w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-white font-black text-xl rounded-2xl">
+                            המשך לבעיטה הבאה ⬅️
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==================== מסך 4: חגיגת סיום שלב / זכייה בגביע ==================== -->
+        <section id="screen-celebration" class="hidden w-full max-w-2xl bg-white rounded-3xl p-6 md:p-8 shadow-2xl border-4 border-yellow-400 text-center">
+            <div id="celeb-trophy" class="text-7xl md:text-8xl mb-3 animate-bounce">🏆</div>
+            <span class="bg-yellow-300 text-slate-950 font-black px-4 py-1 rounded-full text-sm">יש לנו אלופים על המגרש!</span>
+            <h2 id="celeb-title" class="text-3xl md:text-4xl font-black text-slate-900 mt-2 mb-2">כל הכבוד! סיימתם את השלב!</h2>
+            <p id="celeb-subtitle" class="text-base md:text-lg text-slate-600 font-semibold mb-5"></p>
+
+            <!-- סיכום חרוז למזכרת -->
+            <div class="rhyme-box rounded-2xl p-4 mb-6">
+                <span class="text-xs font-black text-amber-800 block mb-1">🌟 זוכרים תמיד את כלל הזהב:</span>
+                <p id="celeb-rhyme" class="text-lg md:text-xl font-black text-slate-900"></p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <button id="celeb-next-stage-btn" onclick="goToNextStage()" class="btn-3d px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-black text-xl rounded-2xl flex items-center justify-center gap-2">
+                    <span>לשלב הבא בטורניר!</span>
+                    <span>⚽</span>
+                </button>
+                <button onclick="showMainMenu()" class="btn-3d px-6 py-4 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-lg rounded-2xl">
+                    חזרה לאצטדיון הראשי 🏠
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- כותרת תחתונה -->
+    <footer class="text-center py-2 text-xs text-emerald-100/80 z-20">
+        נבנה באהבה לילדי בית הספר היסודי • לומדים עברית בכיף ובחרוזים ⚽📚
+    </footer>
+
+    <!-- ==================== לוגיקת המשחק, הסאונד והנתונים ==================== -->
+    <script>
+        /* =========================================================================
+           1. מנוע סאונד ומוזיקה (Web Audio API) + הקראה קולית בעברית (Web Speech API)
+           ========================================================================= */
+        let audioCtx = null;
+        let sfxEnabled = true;
+        let musicPlaying = false;
+        let musicInterval = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // שריקת שופט
+        function playWhistle() {
+            if (!sfxEnabled) return;
+            initAudio();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(2750, now);
+            osc.frequency.setValueAtTime(2900, now + 0.06);
+            osc.frequency.setValueAtTime(2700, now + 0.12);
+
+            gain.gain.setValueAtTime(0.22, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.35);
+        }
+
+        // צליל בעיטה בכדור
+        function playKickSound() {
+            if (!sfxEnabled) return;
+            initAudio();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(160, now);
+            osc.frequency.exponentialRampToValueAtTime(35, now + 0.15);
+
+            gain.gain.setValueAtTime(0.5, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.16);
+        }
+
+        // צליל גול וחגיגת אצטדיון
+        function playGoalFanfare() {
+            if (!sfxEnabled) return;
+            initAudio();
+            const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+            notes.forEach((freq, idx) => {
+                const now = audioCtx.currentTime + idx * 0.11;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(freq, now);
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            });
+        }
+
+        // צליל החמצה עדין (קורה / עצירת שוער)
+        function playMissSound() {
+            if (!sfxEnabled) return;
+            initAudio();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.linearRampToValueAtTime(180, now + 0.3);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.32);
+        }
+
+        // מנגינת רקע קצבית ושמחה לאצטדיון
+        function toggleMusic() {
+            initAudio();
+            musicPlaying = !musicPlaying;
+            const btn = document.getElementById('music-btn');
+            const icon = document.getElementById('music-icon');
+
+            if (musicPlaying) {
+                btn.classList.replace('bg-indigo-600', 'bg-pink-600');
+                icon.textContent = '🎶';
+                let step = 0;
+                const melody = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 293.66, 392.00];
+                musicInterval = setInterval(() => {
+                    if (!musicPlaying || !sfxEnabled) return;
+                    const now = audioCtx.currentTime;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(melody[step % melody.length], now);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.22);
+                    step++;
+                }, 260);
+            } else {
+                btn.classList.replace('bg-pink-600', 'bg-indigo-600');
+                icon.textContent = '🎵';
+                clearInterval(musicInterval);
+            }
+        }
+
+        function toggleSfx() {
+            sfxEnabled = !sfxEnabled;
+            const icon = document.getElementById('sfx-icon');
+            const btn = document.getElementById('sfx-btn');
+            if (sfxEnabled) {
+                icon.textContent = '🔊';
+                btn.classList.replace('bg-slate-600', 'bg-emerald-600');
+            } else {
+                icon.textContent = '🔇';
+                btn.classList.replace('bg-emerald-600', 'bg-slate-600');
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            }
+        }
+
+        // הקראה קולית בעברית (Web Speech API)
+        function speakHebrew(text) {
+            if (!sfxEnabled || !('speechSynthesis' in window)) return;
+            try {
+                window.speechSynthesis.cancel();
+                const cleanText = text.replace(/___/g, 'השלימו');
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                utterance.lang = 'he-IL';
+                utterance.rate = 0.95;
+                utterance.pitch = 1.05;
+                window.speechSynthesis.speak(utterance);
+            } catch (e) {
+                console.warn('Speech synthesis error:', e);
+            }
+        }
+
+        /* =========================================================================
+           2. מאגר התוכן החינוכי: 4 הכללים מסעיף 1 + חרוזים + דוגמאות + שאלות
+           ========================================================================= */
+        const STAGES_DATA = [
+            {
+                id: 0,
+                title: "אותיות אית\"ן – אני בעתיד",
+                rhyme: "כשמדברים עליי בעתיד – האות א' תוביל תמיד! אני אבעט, אני ארוץ, והכדור יעוף לחוץ!",
+                explanation: "כשאני מדבר על עצמי בזמן עתיד (מה אני אעשה מחר או בעוד רגע), הפועל תמיד מתחיל באות א' – ולא באות י'!",
+                examples: [
+                    { right: "מחר אני אלך לאימון כדורגל", wrong: "מחר אני ילך לאימון", note: "מדברים עליי (אני) <- מתחילים ב-א'!" },
+                    { right: "במשחק הבא אני אבקיע שער", wrong: "במשחק הבא אני יבקיע", note: "אני אבקיע (א'), הוא יבקיע (י')." },
+                    { right: "אני אעשה תרגיל מבריק", wrong: "אני יעשה תרגיל", note: "זוכרים: אני = א'!" },
+                    { right: "אני אכתוב שלט עידוד לקבוצה", wrong: "אני יכתוב שלט", note: "אני אכתוב!" }
+                ],
+                questions: [
+                    {
+                        sentence: "מחר באימון אני ___ חזק לשער!",
+                        options: ["אבעט", "יבעט", "תבעט"],
+                        correct: 0,
+                        hint: "מדברים על 'אני' בעתיד",
+                        explain: "אלופים! כשמדברים על 'אני' בעתיד, תמיד מתחילים באות א': אני אבעט!"
+                    },
+                    {
+                        sentence: "הבטחתי למאמן שאני ___ בזמן למשחק.",
+                        options: ["יגיע", "אגיע", "נגיע"],
+                        correct: 1,
+                        hint: "אני בעתיד מתחיל ב...",
+                        explain: "גוווול! אומרים וכותבים 'אני אגיע' עם האות א' בהתחלה."
+                    },
+                    {
+                        sentence: "אם תמסור לי את הכדור, אני ___ גול ניצחון!",
+                        options: ["אעשה", "יעשה", "תעשה"],
+                        correct: 0,
+                        hint: "אני אעשה או אני יעשה?",
+                        explain: "מדויק לחלוטין! 'אני אעשה' באות א' (הוא יעשה ב-י')."
+                    },
+                    {
+                        sentence: "אחרי המשחק אני ___ הרבה מים קרים.",
+                        options: ["ישתה", "אשתה", "נשתה"],
+                        correct: 1,
+                        hint: "פעולה שאני אעשה בעתיד",
+                        explain: "בעיטה לחיבורים! 'אני אשתה' מתחיל באות א'."
+                    },
+                    {
+                        sentence: "בעונה הבאה אני ___ חולצה מספר 10!",
+                        options: ["ילבש", "אלבש", "תלבש"],
+                        correct: 1,
+                        hint: "אני = א'",
+                        explain: "שער ענק! 'אני אלבש' באות א' כי מדובר עליי בעתיד."
+                    }
+                ]
+            },
+            {
+                id: 1,
+                title: "הבחנה בין \"אם\" ל-\"עם\"",
+                rhyme: "ע' זה ביחד – עם כל הקבוצה! א' זה תנאי – אם תמסור פצצה!",
+                explanation: "איך מבדילים? אם אפשר להחליף את המילה ב\"יחד עם\" – כותבים עם (באות ע'). אם מדובר בתנאי או ספק – כותבים אם (באות א').",
+                examples: [
+                    { right: "שיחקתי כדורגל עם החברים", wrong: "שיחקתי כדורגל אם החברים", note: "ביחד עם החברים = באות ע'!" },
+                    { right: "אם נתאמן חזק – נזכה בגביע!", wrong: "עם נתאמן חזק – נזכה", note: "תנאי = באות א'!" },
+                    { right: "אכלתי פיצה עם זיתים אחרי המשחק", wrong: "אכלתי פיצה אם זיתים", note: "תוספת / יחד = עם ב-ע'!" },
+                    { right: "השופט בדק אם הכדור עבר את הקו", wrong: "השופט בדק עם הכדור עבר", note: "ספק או שאלה = אם ב-א'!" }
+                ],
+                questions: [
+                    {
+                        sentence: "הלכתי למגרש הכדורגל ___ אחי הגדול.",
+                        options: ["עם", "אם"],
+                        correct: 0,
+                        hint: "האם זה 'ביחד' או 'תנאי'?",
+                        explain: "גוווול! הלכתי *ביחד* עם אחי, ולכן כותבים 'עם' באות ע'!"
+                    },
+                    {
+                        sentence: "___ ירד גשם חזק, האימון יעבור לאולם הספורט.",
+                        options: ["עם", "אם"],
+                        correct: 1,
+                        hint: "יש כאן תנאי!",
+                        explain: "בול ברשת! זו מילת תנאי, ולכן כותבים 'אם' באות א'!"
+                    },
+                    {
+                        sentence: "הקפטן התחבק ___ השוער אחרי העצירה המדהימה.",
+                        options: ["אם", "עם"],
+                        correct: 1,
+                        hint: "ביחד עם השוער",
+                        explain: "אלופים! שיתוף וביחד כותבים תמיד ב-ע': 'עם השוער'."
+                    },
+                    {
+                        sentence: "אנחנו ננצח במשחק ___ נשחק בעבודת צוות!",
+                        options: ["אם", "עם"],
+                        correct: 0,
+                        hint: "מה התנאי לניצחון?",
+                        explain: "שער מרהיב! מדובר בתנאי לניצחון, ולכן כותבים 'אם' באות א'."
+                    },
+                    {
+                        sentence: "באתי למשחק ___ נעלי הפקקים החדשות שלי.",
+                        options: ["עם", "אם"],
+                        correct: 0,
+                        hint: "יחד עם הנעליים",
+                        explain: "נכון מאוד! תוספת או 'יחד' כותבים באות ע': 'עם נעלי הפקקים'."
+                    }
+                ]
+            },
+            {
+                id: 2,
+                title: "סיומת ם' או ן' במילים",
+                rhyme: "מתלבטים בסוף בין מ' או נ'? הפכו לרבים – והתשובה מוכנה!",
+                explanation: "מילים רבות מסתיימות ב-ם' סופית או ב-ן' סופית ונשמעות דומה. הטריק: הופכים את המילה לרבים ומקשיבים איזו אות מסתתרת בפנים!",
+                examples: [
+                    { right: "שולחן (כי ברבים: שולחנות)", wrong: "שולחם", note: "שומעים נ' במילה שולחנות!" },
+                    { right: "חלום (כי ברבים: חלומות)", wrong: "חלון (כשמתכוונים לחלום בלילה)", note: "שומעים מ' במילה חלומות!" },
+                    { right: "שלום (ברבים: שלומות)", wrong: "שלון", note: "שומעים מ' ברורה!" },
+                    { right: "אצטדיון (ברבים: אצטדיונים)", wrong: "אצטדיום", note: "שומעים נ' במילה אצטדיונים!" }
+                ],
+                questions: [
+                    {
+                        sentence: "הנחנו את גביע האליפות על ה___ בכיתה.",
+                        options: ["שולחן", "שולחם"],
+                        correct: 0,
+                        hint: "ברבים אומרים: שולחנות!",
+                        explain: "גוווול! ברבים אומרים 'שולחנות' עם נ', לכן ביחיד כותבים 'שולחן' ב-ן' סופית!"
+                    },
+                    {
+                        sentence: "היה לי ___ נפלא שאנחנו זוכים באליפות!",
+                        options: ["חלון", "חלום"],
+                        correct: 1,
+                        hint: "ברבים אומרים: חלומות!",
+                        explain: "פצצה לחיבורים! ברבים אומרים 'חלומות' עם מ', ולכן כותבים 'חלום' ב-ם' סופית."
+                    },
+                    {
+                        sentence: "לפני שריקת הפתיחה השחקנים אמרו ___ זה לזה.",
+                        options: ["שלום", "שלון"],
+                        correct: 0,
+                        hint: "מה האות האחרונה במילה שלום?",
+                        explain: "מעולה! המילה 'שלום' מסתיימת באות ם' סופית (דורשים בשלומם)."
+                    },
+                    {
+                        sentence: "אלפי אוהדים הגיעו לעודד ב___ הכדורגל.",
+                        options: ["אצטדיום", "אצטדיון"],
+                        correct: 1,
+                        hint: "ברבים: אצטדיונים!",
+                        explain: "בינגו! ברבים אומרים 'אצטדיונים' עם נ', ולכן כותבים 'אצטדיון' ב-ן' סופית."
+                    },
+                    {
+                        sentence: "השופט בדק את ה___ בלוח התוצאות.",
+                        options: ["שעון", "שעום"],
+                        correct: 0,
+                        hint: "ברבים: שעונים!",
+                        explain: "גול ניצחון! ברבים אומרים 'שעונים' עם נ', לכן כותבים 'שעון' ב-ן' סופית."
+                    }
+                ]
+            },
+            {
+                id: 3,
+                title: "פעלים בעבר: הוא ב-ה', היא ב-תה",
+                rhyme: "בעבר הוא תמיד מסתיים ב-ה', והיא מוסיפה גם ת' לחגיגה!",
+                explanation: "בזמן עבר (גוף שלישי): כשמדברים על 'הוא' הפועל מסתיים באות ה' (רצה, בנה, קנה). כשמדברים על 'היא' מוסיפים ת' לפני ה-ה' (רצתה, בנתה, קנתה).",
+                examples: [
+                    { right: "השחקן רצה להבקיע שער", wrong: "השחקן רצא להבקיע", note: "הוא בעבר מסתיים ב-ה'!" },
+                    { right: "החלוצה רצתה למסור לחברה", wrong: "החלוצה רצת להבקיע", note: "היא בעבר מסתיימת ב-תה!" },
+                    { right: "המאמן קנה כדורים חדשים", wrong: "המאמן קנא כדורים", note: "הוא קנה (באות ה')." },
+                    { right: "הקבוצה בנתה התקפה מעולה", wrong: "הקבוצה בנת התקפה", note: "היא בנתה (ת' + ה')." }
+                ],
+                questions: [
+                    {
+                        sentence: "אתמול השוער שלנו ___ לזנק ולעצור את הכדור.",
+                        options: ["רצה", "רצא", "רצתה"],
+                        correct: 0,
+                        hint: "השוער = הוא (בזמן עבר)",
+                        explain: "גוווול! השוער (הוא) 'רצה' באות ה' בסוף המילה!"
+                    },
+                    {
+                        sentence: "קפטנית הקבוצה ___ להניף את הגביע מול הקהל!",
+                        options: ["רצה", "רצתה", "רצת"],
+                        correct: 1,
+                        hint: "הקפטנית = היא (מוסיפים ת' + ה')",
+                        explain: "אלופים! כשמדברים על 'היא' בעבר מוסיפים ת' לפני ה-ה': היא רצתה!"
+                    },
+                    {
+                        sentence: "אבא ___ לי נעלי כדורגל חדשות ליום ההולדת.",
+                        options: ["קנא", "קנה", "קנתה"],
+                        correct: 1,
+                        hint: "אבא = הוא",
+                        explain: "בול בפוני! פועל בעבר על 'הוא' מסתיים ב-ה': אבא קנה."
+                    },
+                    {
+                        sentence: "הנבחרת שלנו ___ מהלך קבוצתי מדהים שהוביל לשער.",
+                        options: ["בנת", "בנה", "בנתה"],
+                        correct: 2,
+                        hint: "הנבחרת = היא",
+                        explain: "שער אדיר! הנבחרת (היא) 'בנתה' – עם סיומת תה!"
+                    },
+                    {
+                        sentence: "האוהד הצעיר ___ את המשחק מהשורה הראשונה.",
+                        options: ["ראה", "ראא", "ראתה"],
+                        correct: 0,
+                        hint: "האוהד = הוא",
+                        explain: "כל הכבוד! האוהד (הוא) 'ראה' בסיומת ה'."
+                    }
+                ]
+            }
+        ];
+
+        /* =========================================================================
+           3. ניהול מצב המשחק (State)
+           ========================================================================= */
+        let currentStageIdx = 0;
+        let currentQuestions = [];
+        let currentQuestionIdx = 0;
+        let totalGoals = 0;
+        let currentStreak = 0;
+        let completedStages = new Set();
+        let penaltyResults = []; // 'goal', 'miss', 'pending'
+        let isShooting = false;
+
+        // עדכון לוח התוצאות העליון
+        function updateScoreboard() {
+            document.getElementById('score-display').textContent = totalGoals;
+            document.getElementById('streak-display').textContent = currentStreak;
+            document.getElementById('medals-display').textContent = `${completedStages.size}/4`;
+
+            // עדכון תגי "הושלם" בתפריט הראשי
+            for (let i = 0; i < 4; i++) {
+                const badge = document.getElementById(`badge-stage-${i}`);
+                if (completedStages.has(i)) {
+                    badge.classList.remove('hidden');
+                }
+            }
+        }
+
+        // מעבר בין מסכים
+        function switchScreen(screenId) {
+            ['screen-menu', 'screen-briefing', 'screen-game', 'screen-celebration'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function showMainMenu() {
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            updateScoreboard();
+            switchScreen('screen-menu');
+        }
+
+        /* =========================================================================
+           4. התחלת שלב ותדריך המאמן
+           ========================================================================= */
+        function startStage(stageIndex) {
+            playWhistle();
+            currentStageIdx = stageIndex;
+
+            if (stageIndex === 4) {
+                // גמר גביע האלופים - אוסף שאלות מכל 4 הכללים
+                const mixedQuestions = [];
+                STAGES_DATA.forEach(s => {
+                    s.questions.forEach(q => mixedQuestions.push(q));
+                });
+                // ערבוב ובחירת 6 שאלות לגמר
+                currentQuestions = mixedQuestions.sort(() => Math.random() - 0.5).slice(0, 6);
+
+                document.getElementById('briefing-stage-tag').textContent = '🏆 גמר גביע האלופים!';
+                document.getElementById('briefing-title').textContent = 'כל ארבעת חוקי האליפות יחד!';
+                document.getElementById('briefing-rhyme').textContent = 'אני בעתיד ב-א׳ מתחיל, עם חברים ב-ע׳ רגיל, ברבים בודקים ם׳ או ן׳, ובעבר ה׳ או תה – מוכנים למבחן!';
+                document.getElementById('briefing-explanation').textContent = 'הגעתם למשחק הגמר! כאן נפגוש שאלות מכל 4 הכללים שלמדנו. הפעילו את חרוזי הקסם והבקיעו את כל הפנדלים!';
+                
+                const exContainer = document.getElementById('briefing-examples');
+                exContainer.innerHTML = STAGES_DATA.map(s => `
+                    <div class="bg-emerald-50 border-2 border-emerald-300 rounded-xl p-3 text-right">
+                        <div class="font-black text-emerald-900 text-sm mb-1">⚽ ${s.title}</div>
+                        <div class="text-xs text-slate-700 font-semibold">${s.rhyme}</div>
+                    </div>
+                `).join('');
+
+                switchScreen('screen-briefing');
+                return;
+            }
+
+            const stage = STAGES_DATA[stageIndex];
+            currentQuestions = [...stage.questions];
+
+            document.getElementById('briefing-stage-tag').textContent = `תדריך המאמן – שלב ${stageIndex + 1}`;
+            document.getElementById('briefing-title').textContent = stage.title;
+            document.getElementById('briefing-rhyme').textContent = stage.rhyme;
+            document.getElementById('briefing-explanation').textContent = stage.explanation;
+
+            // רינדור דוגמאות
+            const exContainer = document.getElementById('briefing-examples');
+            exContainer.innerHTML = stage.examples.map(ex => `
+                <div class="bg-slate-50 border-2 border-slate-200 rounded-2xl p-3.5 text-right flex flex-col justify-between shadow-sm">
+                    <div class="flex items-center gap-2 text-emerald-700 font-black text-base mb-1">
+                        <span>✅</span>
+                        <span>${ex.right}</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-rose-500 line-through text-xs font-semibold mb-1.5">
+                        <span>❌</span>
+                        <span>${ex.wrong}</span>
+                    </div>
+                    <div class="text-xs bg-amber-100 text-amber-900 font-bold px-2.5 py-1 rounded-lg">
+                        💡 ${ex.note}
+                    </div>
+                </div>
+            `).join('');
+
+            switchScreen('screen-briefing');
+        }
+
+        function readCurrentBriefing() {
+            const title = document.getElementById('briefing-title').textContent;
+            const rhyme = document.getElementById('briefing-rhyme').textContent;
+            const exp = document.getElementById('briefing-explanation').textContent;
+            speakHebrew(`${title}. חרוז הקסם: ${rhyme}. ${exp}`);
+        }
+
+        /* =========================================================================
+           5. דו-קרב פנדלים על המגרש
+           ========================================================================= */
+        function launchPenaltyShootout() {
+            playWhistle();
+            currentQuestionIdx = 0;
+            penaltyResults = new Array(currentQuestions.length).fill('pending');
+
+            const stageName = currentStageIdx === 4 ? '🏆 גמר גביע האלופים' : `שלב ${currentStageIdx + 1}: ${STAGES_DATA[currentStageIdx].title}`;
+            document.getElementById('game-stage-title').textContent = stageName;
+
+            const reminderText = currentStageIdx === 4
+                ? 'אני בעתיד ב-א׳ | עם=ביחד, אם=תנאי | בדיקת ם/ן ברבים | בעבר: הוא ב-ה׳, היא ב-תה'
+                : STAGES_DATA[currentStageIdx].rhyme;
+            document.getElementById('reminder-rhyme-text').textContent = `✨ ${reminderText}`;
+            document.getElementById('rule-reminder-popup').classList.add('hidden');
+
+            switchScreen('screen-game');
+            renderCurrentQuestion();
+        }
+
+        function toggleRuleReminder() {
+            const popup = document.getElementById('rule-reminder-popup');
+            popup.classList.toggle('hidden');
+            if (!popup.classList.contains('hidden')) {
+                speakHebrew(document.getElementById('reminder-rhyme-text').textContent);
+            }
+        }
+
+        function renderPenaltyDots() {
+            const container = document.getElementById('penalty-dots');
+            container.innerHTML = penaltyResults.map((status, idx) => {
+                let bg = 'bg-slate-600 border-slate-400';
+                let icon = '⚪';
+                if (status === 'goal') { bg = 'bg-emerald-500 border-emerald-200'; icon = '⚽'; }
+                if (status === 'miss') { bg = 'bg-amber-500 border-amber-200'; icon = '🔄'; }
+                if (idx === currentQuestionIdx && status === 'pending') {
+                    bg = 'bg-yellow-400 border-white animate-pulse';
+                }
+                return `<span class="w-6 h-6 rounded-full border-2 ${bg} flex items-center justify-center text-xs">${icon}</span>`;
+            }).join('');
+        }
+
+        function renderCurrentQuestion() {
+            isShooting = false;
+            const q = currentQuestions[currentQuestionIdx];
+
+            document.getElementById('question-counter').textContent = `בעיטה ${currentQuestionIdx + 1} מתוך ${currentQuestions.length}`;
+            renderPenaltyDots();
+
+            // איפוס מיקום הכדור והשוער
+            const ball = document.getElementById('soccer-ball');
+            ball.style.transform = 'translate(0px, 0px) scale(1)';
+            ball.classList.remove('ball-spin');
+
+            const goalie = document.getElementById('goalkeeper');
+            goalie.style.transform = 'translate(0px, 0px) rotate(0deg)';
+            goalie.classList.add('goalie-idle');
+            goalie.textContent = '🧤🧍‍♂️🧤';
+
+            // הצגת המשפט עם הדגשת החלק החסר
+            const formattedSentence = q.sentence.replace('___', '<span class="inline-block bg-yellow-200 text-amber-900 px-3 py-0.5 rounded-xl border-2 border-dashed border-amber-500 mx-1">?</span>');
+            document.getElementById('question-sentence').innerHTML = formattedSentence;
+            document.getElementById('question-hint-sub').textContent = `רמז מהמאמן: ${q.hint}`;
+
+            // יצירת כפתורי המטרות בשער
+            const targetsContainer = document.getElementById('targets-container');
+            const gridCols = q.options.length === 2 ? 'grid-cols-2 max-w-md mx-auto' : 'grid-cols-3';
+            targetsContainer.className = `w-full grid ${gridCols} gap-3 md:gap-5 z-20 my-auto`;
+
+            targetsContainer.innerHTML = q.options.map((opt, idx) => `
+                <button onclick="shootBall(${idx})" class="btn-target btn-3d bg-gradient-to-b from-yellow-300 to-amber-400 hover:from-yellow-200 hover:to-amber-300 text-slate-950 font-black text-xl md:text-2xl py-3.5 px-4 rounded-2xl border-3 border-white flex flex-col items-center justify-center gap-1 shadow-xl">
+                    <span class="text-xs font-bold text-amber-900 bg-white/70 px-2 py-0.5 rounded-full">🎯 בעט לכאן</span>
+                    <span>${opt}</span>
+                </button>
+            `).join('');
+        }
+
+        function speakCurrentQuestion() {
+            const q = currentQuestions[currentQuestionIdx];
+            const spoken = q.sentence.replace('___', 'השלימו את המילה:');
+            speakHebrew(`${spoken}. האפשרויות הן: ${q.options.join(', או ')}`);
+        }
+
+        // פעולת הבעיטה לשער
+        function shootBall(chosenIdx) {
+            if (isShooting) return;
+            isShooting = true;
+            playKickSound();
+
+            const q = currentQuestions[currentQuestionIdx];
+            const isCorrect = (chosenIdx === q.correct);
+            const ball = document.getElementById('soccer-ball');
+            const goalie = document.getElementById('goalkeeper');
+
+            goalie.classList.remove('goalie-idle');
+            ball.classList.add('ball-spin');
+
+            // חישוב זווית מעוף הכדור לפי הכפתור שנבחר (ימין, אמצע, שמאל ב-RTL)
+            let xOffset = 0;
+            if (q.options.length === 2) {
+                xOffset = chosenIdx === 0 ? 110 : -110;
+            } else {
+                if (chosenIdx === 0) xOffset = 140;
+                else if (chosenIdx === 1) xOffset = 0;
+                else xOffset = -140;
+            }
+
+            // תנועת הכדור לשער
+            ball.style.transform = `translate(${xOffset}px, -235px) scale(0.55)`;
+
+            // תנועת השוער: אם הילד צדק השוער מזנק לכיוון ההפוך! אם טעה – השוער הודף!
+            if (isCorrect) {
+                const goalieDiveX = xOffset >= 0 ? -115 : 115;
+                goalie.style.transform = `translate(${goalieDiveX}px, 10px) rotate(${goalieDiveX > 0 ? 25 : -25}deg)`;
+            } else {
+                goalie.style.transform = `translate(${xOffset * 0.75}px, -25px) scale(1.15)`;
+                goalie.textContent = '🧤🛑🧤';
+            }
+
+            setTimeout(() => {
+                ball.classList.remove('ball-spin');
+                showShotFeedback(isCorrect, q);
+            }, 560);
+        }
+
+        function showShotFeedback(isCorrect, q) {
+            const overlay = document.getElementById('feedback-overlay');
+            const emoji = document.getElementById('feedback-emoji');
+            const title = document.getElementById('feedback-title');
+            const explain = document.getElementById('feedback-explanation');
+            const nextBtn = document.getElementById('feedback-next-btn');
+
+            overlay.classList.remove('hidden');
+
+            if (isCorrect) {
+                playGoalFanfare();
+                launchConfetti(60);
+                totalGoals++;
+                currentStreak++;
+                penaltyResults[currentQuestionIdx] = 'goal';
+                updateScoreboard();
+                renderPenaltyDots();
+
+                const cheers = ["גוווול! לחיבורים!", "שער אדיר! אלופים!", "פצצה לרשת! כל הכבוד!", "איזו בעיטה מושלמת!"];
+                const randomCheer = cheers[Math.floor(Math.random() * cheers.length)];
+
+                emoji.textContent = '⚽🥅🎉';
+                title.textContent = randomCheer;
+                title.className = 'text-3xl md:text-4xl font-black text-emerald-600 mb-2';
+                
+                const fullCorrectSentence = q.sentence.replace('___', `<u class="text-emerald-700 font-black">${q.options[q.correct]}</u>`);
+                explain.innerHTML = `<div class="text-xl text-slate-900 mb-2">"${fullCorrectSentence}"</div><div>${q.explain}</div>`;
+                nextBtn.textContent = (currentQuestionIdx < currentQuestions.length - 1) ? 'לבעיטה הבאה! ⚽⬅️' : 'לסיכום השלב וקבלת מדליה! 🏅';
+                nextBtn.onclick = () => nextPenaltyStep(true);
+
+                speakHebrew(`${randomCheer}. ${q.explain}`);
+            } else {
+                playMissSound();
+                currentStreak = 0;
+                updateScoreboard();
+
+                emoji.textContent = '🧤😮';
+                title.textContent = 'השוער הדף! בואו ננסה שוב!';
+                title.className = 'text-2xl md:text-3xl font-black text-amber-600 mb-2';
+
+                const stageRhyme = currentStageIdx === 4 ? '' : `<div class="mt-2 text-sm bg-yellow-100 text-amber-900 p-2 rounded-xl">🎵 זכרו: ${STAGES_DATA[currentStageIdx].rhyme}</div>`;
+                explain.innerHTML = `<div>לא נורא! אלופים לומדים מכל בעיטה.</div><div class="text-emerald-700 mt-1">רמז: ${q.hint}</div>${stageRhyme}`;
+                nextBtn.textContent = 'בעיטה חוזרת! נסו שוב 🔄⚽';
+                nextBtn.onclick = () => nextPenaltyStep(false);
+
+                speakHebrew(`השוער הדף! לא נורא, הנה רמז: ${q.hint}. נסו שוב!`);
+            }
+        }
+
+        function nextPenaltyStep(advanceToNext) {
+            document.getElementById('feedback-overlay').classList.add('hidden');
+            if (advanceToNext) {
+                currentQuestionIdx++;
+                if (currentQuestionIdx >= currentQuestions.length) {
+                    finishStageCelebration();
+                } else {
+                    renderCurrentQuestion();
+                }
+            } else {
+                // ניסיון חוזר באותה שאלה כדי שהילד יצליח ויחווה הצלחה
+                renderCurrentQuestion();
+            }
+        }
+
+        /* =========================================================================
+           6. סיום שלב וחגיגת מדליות וגביעים
+           ========================================================================= */
+        function finishStageCelebration() {
+            playGoalFanfare();
+            launchConfetti(140);
+
+            if (currentStageIdx < 4) {
+                completedStages.add(currentStageIdx);
+            }
+            updateScoreboard();
+
+            const titleEl = document.getElementById('celeb-title');
+            const subEl = document.getElementById('celeb-subtitle');
+            const rhymeEl = document.getElementById('celeb-rhyme');
+            const trophyEl = document.getElementById('celeb-trophy');
+            const nextBtn = document.getElementById('celeb-next-stage-btn');
+
+            if (currentStageIdx === 4 || completedStages.size === 4) {
+                trophyEl.textContent = '🏆👑⚽';
+                titleEl.textContent = 'אלופי ליגת העל בעברית!';
+                subEl.textContent = `כבשתם כבר ${totalGoals} שערים ואתם שולטים בכל ארבעת חוקי הכתיב ללא שגיאות!`;
+                rhymeEl.textContent = 'אני בעתיד ב-א׳ | עם=ביחד, אם=תנאי | בדיקת ם/ן ברבים | בעבר: הוא ב-ה׳, היא ב-תה!';
+                nextBtn.textContent = 'שחקו שוב בגמר האלופים! 🏆';
+                nextBtn.onclick = () => startStage(4);
+            } else {
+                const st = STAGES_DATA[currentStageIdx];
+                trophyEl.textContent = '🏅⚽🎉';
+                titleEl.textContent = `מדליית זהב ב${st.title}!`;
+                subEl.textContent = `הבקעתם את כל הפנדלים בשלב ${currentStageIdx + 1}! נשארו עוד ${4 - completedStages.size} מדליות לזכייה בגביע המדינה!`;
+                rhymeEl.textContent = st.rhyme;
+                nextBtn.textContent = `המשיכו לשלב ${currentStageIdx + 2}! ⚽⬅️`;
+                nextBtn.onclick = () => goToNextStage();
+            }
+
+            switchScreen('screen-celebration');
+            speakHebrew(`${titleEl.textContent}. ${subEl.textContent}`);
+        }
+
+        function goToNextStage() {
+            if (currentStageIdx < 3) {
+                startStage(currentStageIdx + 1);
+            } else {
+                startStage(4);
+            }
+        }
+
+        /* =========================================================================
+           7. מנוע קונפטי צבעוני על גבי Canvas
+           ========================================================================= */
+        const confettiCanvas = document.getElementById('confetti-canvas');
+        const cCtx = confettiCanvas.getContext('2d');
+        let confettiParticles = [];
+        let confettiAnimId = null;
+
+        function resizeConfettiCanvas() {
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeConfettiCanvas);
+        resizeConfettiCanvas();
+
+        function launchConfetti(count = 80) {
+            const colors = ['#facc15', '#22c55e', '#38bdf8', '#f43f5e', '#a855f7', '#ffffff'];
+            for (let i = 0; i < count; i++) {
+                confettiParticles.push({
+                    x: window.innerWidth / 2 + (Math.random() - 0.5) * 260,
+                    y: window.innerHeight * 0.45,
+                    vx: (Math.random() - 0.5) * 16,
+                    vy: -(Math.random() * 14 + 5),
+                    size: Math.random() * 9 + 6,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotation: Math.random() * 360,
+                    vRot: (Math.random() - 0.5) * 12,
+                    alpha: 1
+                });
+            }
+            if (!confettiAnimId) {
+                animateConfetti();
+            }
+        }
+
+        function animateConfetti() {
+            cCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            confettiParticles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.38; // כוח משיכה
+                p.rotation += p.vRot;
+                p.alpha -= 0.008;
+
+                cCtx.save();
+                cCtx.globalAlpha = Math.max(0, p.alpha);
+                cCtx.translate(p.x, p.y);
+                cCtx.rotate((p.rotation * Math.PI) / 180);
+                cCtx.fillStyle = p.color;
+                cCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.65);
+                cCtx.restore();
+            });
+
+            confettiParticles = confettiParticles.filter(p => p.alpha > 0 && p.y < confettiCanvas.height + 30);
+
+            if (confettiParticles.length > 0) {
+                confettiAnimId = requestAnimationFrame(animateConfetti);
+            } else {
+                confettiAnimId = null;
+                cCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            }
+        }
+    </script>
+</body>
+</html>
